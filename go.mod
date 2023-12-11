@@ -21,7 +21,7 @@ require (
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
 	golang.org/x/tools v0.16.0
-	google.golang.org/api v0.152.0
+	google.golang.org/api v0.153.0
 	honnef.co/go/tools v0.4.6
 	k8s.io/klog/v2 v2.110.1
 	k8s.io/test-infra v0.0.0-20231026093210-34e553baa873
