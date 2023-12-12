@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/xml"
 	"fmt"
+	"github.com/redhat-appstudio/qe-tools/pkg/types"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,7 +27,6 @@ import (
 const (
 	buildLogFilename = "build-log.txt"
 	finishedFilename = "finished.json"
-	junitFilename    = `/(j?unit|e2e).*\.xml`
 
 	gcsBrowserURLPrefix = "https://gcsweb-ci.apps.ci.l2s4.p1.openshiftapps.com/gcs/origin-ci-test/"
 )
@@ -36,19 +36,19 @@ var createReportCmd = &cobra.Command{
 	Use:   "create-report",
 	Short: "Analyze specified prow job and create a report in junit/html format",
 	PreRunE: func(cmd *cobra.Command, _ []string) error {
-		if viper.GetString(prowJobIDParamName) == "" {
+		if viper.GetString(types.ProwJobIDParamName) == "" {
 			_ = cmd.Usage()
-			return fmt.Errorf("parameter %q not provided, neither %s env var was set", prowJobIDParamName, prowJobIDEnv)
+			return fmt.Errorf("parameter %q not provided, neither %s env var was set", types.ProwJobIDParamName, types.ProwJobIDEnv)
 		}
 		return nil
 	},
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		jobID := viper.GetString(prowJobIDParamName)
+		jobID := viper.GetString(types.ProwJobIDParamName)
 
 		cfg := prow.ScannerConfig{
 			ProwJobID:      jobID,
-			FileNameFilter: []string{finishedFilename, buildLogFilename, junitFilename},
+			FileNameFilter: []string{finishedFilename, buildLogFilename, types.JunitFilename},
 		}
 
 		scanner, err := prow.NewArtifactScanner(cfg)
@@ -101,7 +101,7 @@ var createReportCmd = &cobra.Command{
 			}
 		}
 
-		artifactDir := viper.GetString(artifactDirParamName)
+		artifactDir := viper.GetString(types.ArtifactDirParamName)
 		if artifactDir == "" {
 			artifactDir = "./tmp/" + jobID
 			klog.Warningf("path to artifact dir was not provided - using default %q\n", artifactDir)
@@ -141,11 +141,11 @@ var createReportCmd = &cobra.Command{
 }
 
 func init() {
-	createReportCmd.Flags().StringVar(&prowJobID, prowJobIDParamName, "", "Prow job ID to analyze")
+	createReportCmd.Flags().StringVar(&prowJobID, types.ProwJobIDParamName, "", "Prow job ID to analyze")
 
-	_ = viper.BindPFlag(artifactDirParamName, createReportCmd.Flags().Lookup(artifactDirParamName))
-	_ = viper.BindPFlag(prowJobIDParamName, createReportCmd.Flags().Lookup(prowJobIDParamName))
+	_ = viper.BindPFlag(types.ArtifactDirParamName, createReportCmd.Flags().Lookup(types.ArtifactDirParamName))
+	_ = viper.BindPFlag(types.ProwJobIDParamName, createReportCmd.Flags().Lookup(types.ProwJobIDParamName))
 	// Bind environment variables to viper (in case the associated command's parameter is not provided)
-	_ = viper.BindEnv(prowJobIDParamName, prowJobIDEnv)
-	_ = viper.BindEnv(artifactDirParamName, artifactDirEnv)
+	_ = viper.BindEnv(types.ProwJobIDParamName, types.ProwJobIDEnv)
+	_ = viper.BindEnv(types.ArtifactDirParamName, types.ArtifactDirEnv)
 }

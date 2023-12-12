@@ -1,18 +1,13 @@
 package prowjob
 
 import (
+	"github.com/redhat-appstudio/qe-tools/pkg/types"
 	"github.com/spf13/cobra"
 )
 
 const (
-	artifactDirEnv string = "ARTIFACT_DIR"
-	githubTokenEnv string = "GITHUB_TOKEN" // #nosec G101
-	prowJobIDEnv   string = "PROW_JOB_ID"
-
-	artifactDirParamName     string = "artifact-dir"
 	failIfUnhealthyParamName string = "fail-if-unhealthy"
 	notifyOnPRParamName      string = "notify-on-pr"
-	prowJobIDParamName       string = "prow-job-id"
 )
 
 var (
@@ -33,6 +28,6 @@ func init() {
 	ProwjobCmd.AddCommand(createReportCmd)
 	ProwjobCmd.AddCommand(healthCheckCmd)
 
-	createReportCmd.Flags().StringVar(&artifactDir, artifactDirParamName, "", "Path to the folder where to store produced files")
-	healthCheckCmd.Flags().StringVar(&artifactDir, artifactDirParamName, "", "Path to the folder where to store produced files")
+	createReportCmd.Flags().StringVar(&artifactDir, types.ArtifactDirParamName, "", "Path to the folder where to store produced files")
+	healthCheckCmd.Flags().StringVar(&artifactDir, types.ArtifactDirParamName, "", "Path to the folder where to store produced files")
 }

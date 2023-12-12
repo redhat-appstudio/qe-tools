@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/redhat-appstudio/qe-tools/pkg/types"
 	"io"
 	"net/http"
 	"net/url"
@@ -32,7 +33,7 @@ via --config=<path-to-config> option)
 
 var (
 	healthCheckConfig                HealthCheckConfig
-	healthCheckNotifyRequiredEnvVars = []string{githubTokenEnv, prowUtils.RepoOwnerEnv, prowUtils.RepoNameEnv, prowUtils.PullNumberEnv}
+	healthCheckNotifyRequiredEnvVars = []string{types.GithubTokenEnv, prowUtils.RepoOwnerEnv, prowUtils.RepoNameEnv, prowUtils.PullNumberEnv}
 )
 
 // HealthCheckConfig represents configuration of external services which status will be checked
@@ -108,7 +109,7 @@ var healthCheckCmd = &cobra.Command{
 			}
 		}
 
-		artifactDir := viper.GetString(artifactDirParamName)
+		artifactDir := viper.GetString(types.ArtifactDirParamName)
 		if artifactDir == "" {
 			artifactDir = "./tmp"
 			klog.Warningf("path to artifact dir was not provided - using default %q\n", artifactDir)
@@ -130,7 +131,7 @@ var healthCheckCmd = &cobra.Command{
 
 			if viper.GetBool(notifyOnPRParamName) {
 				prMessage := buildPRMessage(hcStatus, failIfUnhealthy)
-				githubClient := github.NewClient(http.DefaultClient).WithAuthToken(viper.GetString(githubTokenEnv))
+				githubClient := github.NewClient(http.DefaultClient).WithAuthToken(viper.GetString(types.GithubTokenEnv))
 				prNumberInt, _ := strconv.Atoi(viper.GetString(prowUtils.PullNumberEnv))
 				comment, _, err := githubClient.Issues.CreateComment(
 					context.Background(),
@@ -189,9 +190,9 @@ func init() {
 	healthCheckCmd.Flags().BoolVar(&failIfUnhealthy, failIfUnhealthyParamName, false, "Exit with non-zero code if critical issues were found")
 	healthCheckCmd.Flags().BoolVar(&notifyOnPR, notifyOnPRParamName, false, fmt.Sprintf("Create a comment in a related PR if critical issues were found (required env vars: %+v)", strings.Join(healthCheckNotifyRequiredEnvVars, ", ")))
 
-	_ = viper.BindPFlag(artifactDirParamName, healthCheckCmd.Flags().Lookup(artifactDirParamName))
+	_ = viper.BindPFlag(types.ArtifactDirParamName, healthCheckCmd.Flags().Lookup(types.ArtifactDirParamName))
 	_ = viper.BindPFlag(failIfUnhealthyParamName, healthCheckCmd.Flags().Lookup(failIfUnhealthyParamName))
 	_ = viper.BindPFlag(notifyOnPRParamName, healthCheckCmd.Flags().Lookup(notifyOnPRParamName))
 	// Bind environment variables to viper (in case the associated command's parameter is not provided)
-	_ = viper.BindEnv(artifactDirParamName, artifactDirEnv)
+	_ = viper.BindEnv(types.ArtifactDirParamName, types.ArtifactDirEnv)
 }
