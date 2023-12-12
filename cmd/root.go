@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/redhat-appstudio/qe-tools/cmd/reportportal"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -45,6 +46,7 @@ func init() {
 	rootCmd.AddCommand(prowjob.ProwjobCmd)
 	rootCmd.AddCommand(coffeebreak.CoffeeBreakCmd)
 	rootCmd.AddCommand(sendslackmessage.SendSlackMessageCmd)
+	rootCmd.AddCommand(reportportal.PrepareRPCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.
