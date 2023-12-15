@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"encoding/xml"
 	"fmt"
+	"github.com/redhat-appstudio/qe-tools/pkg/customjunit"
 	"github.com/redhat-appstudio/qe-tools/pkg/types"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,11 +26,15 @@ import (
 	"github.com/spf13/viper"
 )
 
+var formatReportPortal bool
+
 const (
 	buildLogFilename = "build-log.txt"
 	finishedFilename = "finished.json"
 
 	gcsBrowserURLPrefix = "https://gcsweb-ci.apps.ci.l2s4.p1.openshiftapps.com/gcs/origin-ci-test/"
+
+	reportPortalFormatParamName = "report-portal-format"
 )
 
 // createReportCmd represents the createReport command
@@ -136,15 +142,72 @@ var createReportCmd = &cobra.Command{
 
 		klog.Infof("JUnit report saved to: %s/junit.xml", artifactDir)
 		klog.Infof("HTML report saved to: %s/junit-summary.html", artifactDir)
+
+		if formatReportPortal {
+			reportPortalSuites := &customjunit.TestSuites{}
+			if err := readXMLFile(fmt.Sprintf("%s/junit.xml", artifactDir), reportPortalSuites); err != nil {
+				return fmt.Errorf("could not read junit.xml file")
+			}
+
+			changeDisabledToSkipped(overallJUnitSuites, reportPortalSuites)
+
+			generatedReportPortalFilepath := filepath.Clean(artifactDir + "/junit-rp.xml")
+			outRPFile, err := os.Create(generatedReportPortalFilepath)
+			if err != nil {
+				return fmt.Errorf("cannot create file '%s': %+v", generatedReportPortalFilepath, err)
+			}
+
+			if err := xml.NewEncoder(bufio.NewWriter(outRPFile)).Encode(reportPortalSuites); err != nil {
+				return fmt.Errorf("cannot encode JUnit suites struct '%+v' into file located at '%s': %+v", reportPortalSuites, generatedJunitFilepath, err)
+			}
+			klog.Infof("JUnit report for Report Portal saved to: %s/junit-rp.xml", artifactDir)
+		}
+
 		return nil
 	},
 }
 
+func readXMLFile(xmlPath string, result any) error {
+	xmlFile, err := os.Open(xmlPath)
+	if err != nil {
+		return fmt.Errorf("Could not open file '%s', error: %v\n", xmlPath, err)
+	}
+	defer xmlFile.Close()
+
+	xmlBytes, err := io.ReadAll(xmlFile)
+	if err != nil {
+		return err
+	}
+
+	if err = xml.Unmarshal(xmlBytes, &result); err != nil {
+		klog.Errorf("cannot decode JUnit suite %q into xml: %+v", xmlPath, err)
+	}
+
+	return nil
+}
+
+func changeDisabledToSkipped(original *reporters.JUnitTestSuites, custom *customjunit.TestSuites) {
+	totalSkipped := 0
+	for _, suite := range original.TestSuites {
+		if suite.Disabled != 0 {
+			for i := range custom.TestSuites {
+				if custom.TestSuites[i].Name == suite.Name {
+					custom.TestSuites[i].Skipped += suite.Disabled
+				}
+				totalSkipped += custom.TestSuites[i].Skipped
+			}
+		}
+	}
+	custom.Skipped = totalSkipped
+}
+
 func init() {
 	createReportCmd.Flags().StringVar(&prowJobID, types.ProwJobIDParamName, "", "Prow job ID to analyze")
+	createReportCmd.Flags().BoolVar(&formatReportPortal, reportPortalFormatParamName, false, "Format for Report Portal")
 
 	_ = viper.BindPFlag(types.ArtifactDirParamName, createReportCmd.Flags().Lookup(types.ArtifactDirParamName))
 	_ = viper.BindPFlag(types.ProwJobIDParamName, createReportCmd.Flags().Lookup(types.ProwJobIDParamName))
+	_ = viper.BindPFlag(reportPortalFormatParamName, createReportCmd.Flags().Lookup(reportPortalFormatParamName))
 	// Bind environment variables to viper (in case the associated command's parameter is not provided)
 	_ = viper.BindEnv(types.ProwJobIDParamName, types.ProwJobIDEnv)
 	_ = viper.BindEnv(types.ArtifactDirParamName, types.ArtifactDirEnv)
