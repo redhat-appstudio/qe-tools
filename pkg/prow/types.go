@@ -25,13 +25,14 @@ type ArtifactScanner struct {
 	}
 	*/
 	ArtifactStepMap map[ArtifactStepName]ArtifactFilenameMap
-	ObjectPrefix    string
+	ArtifactDirectoryPrefix    string
 }
 
 // ScannerConfig contains fields required
 // for scaning files with ArtifactScanner
 type ScannerConfig struct {
 	ProwJobID      string
+	ProwJobURL     string
 	FileNameFilter []string
 }
 
