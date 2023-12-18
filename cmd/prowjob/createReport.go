@@ -40,6 +40,7 @@ const (
 
 	reportPortalFormatParamName = "report-portal-format"
 	stepsToSkipParamName        = "skip-ci-steps"
+	openshiftCITestSuiteName    = "openshift-ci job"
 )
 
 // createReportCmd represents the createReport command
@@ -74,9 +75,9 @@ var createReportCmd = &cobra.Command{
 		}
 
 		overallJUnitSuites := &reporters.JUnitTestSuites{}
-		openshiftCiJunit := reporters.JUnitTestSuite{Name: "openshift-ci job", Properties: reporters.JUnitProperties{Properties: []reporters.JUnitProperty{}}}
+		openshiftCiJunit := reporters.JUnitTestSuite{Name: openshiftCITestSuiteName, Properties: reporters.JUnitProperties{Properties: []reporters.JUnitProperty{}}}
 
-		htmlReportLink := gcsBrowserURLPrefix + scanner.ObjectPrefix + "redhat-appstudio-report/artifacts/junit-summary.html"
+		htmlReportLink := gcsBrowserURLPrefix + scanner.ArtifactDirectoryPrefix + "redhat-appstudio-report/artifacts/junit-summary.html"
 		openshiftCiJunit.Properties.Properties = append(openshiftCiJunit.Properties.Properties, reporters.JUnitProperty{Name: "html-report-link", Value: htmlReportLink})
 
 		for stepName, artifactsFilenameMap := range scanner.ArtifactStepMap {
