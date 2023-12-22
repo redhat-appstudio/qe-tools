@@ -34,7 +34,7 @@ type TestSuite struct {
 	Package string `xml:"package,attr"`
 	// Tests maps onto the total number of specs in the test suite (this includes any suite nodes such as BeforeSuite)
 	Tests int `xml:"tests,attr"`
-	// Skiped maps onto specs that are skipped/pending
+	// Skipped maps onto specs that are skipped/pending
 	Skipped int `xml:"skipped,attr"`
 	// Errors maps onto specs that panicked or were interrupted
 	Errors int `xml:"errors,attr"`
