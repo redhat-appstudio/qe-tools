@@ -2,6 +2,7 @@ package prow
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -161,4 +162,13 @@ func determineJobTarget(pjYAML *v1.ProwJob) (jobTarget string, err error) {
 		}
 	}
 	return "", fmt.Errorf("%s expected %+v to contain arg --target", errPrefix, args)
+}
+
+func ParseJobSpec(jobSpecData string) (*OpenshiftJobSpec, error) {
+	var openshiftJobSpec = &OpenshiftJobSpec{}
+
+	if err := json.Unmarshal([]byte(jobSpecData), openshiftJobSpec); err != nil {
+		return nil, fmt.Errorf("error when parsing openshift job spec data: %v", err)
+	}
+	return openshiftJobSpec, nil
 }
