@@ -9,7 +9,7 @@ externalServices:
       - Registry
       - API
       - Build System
-    statusPageURL: https://status.quay.io/api/v2/summary.json
+    statusPageURL: https://status.redhat.com/api/v2/summary.json
   - name: github
     criticalComponents:
       - Git Operations
