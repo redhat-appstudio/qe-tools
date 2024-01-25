@@ -68,6 +68,7 @@ type GoWebHookPayload struct {
 }
 
 const (
+	// DefaultSignatureHeader is used as default signature header
 	DefaultSignatureHeader = "X-GoWebHooks-Verification"
 )
 
@@ -102,10 +103,10 @@ func (hook *GoWebHook) Send(receiverURL string) (*http.Response, error) {
 		hook.SignatureHeader = DefaultSignatureHeader
 	}
 
-	if !hook.IsSecure {
+	if !hook.IsSecure { // #nosec G402
 		// By default do not verify SSL certificate validity
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{
-			InsecureSkipVerify: true, //nolint:gosec
+			InsecureSkipVerify: true,
 		}
 	}
 
@@ -140,7 +141,6 @@ func (hook *GoWebHook) Send(receiverURL string) (*http.Response, error) {
 	req.Close = true
 
 	resp, err := client.Do(req)
-
 	if err != nil {
 		return nil, err
 	}
@@ -161,6 +161,7 @@ type Repository struct {
 	PullNumber string `json:"pull_number"`
 }
 
+// CreateAndSend creates and then sends a webhook to the given target
 func (w *Webhook) CreateAndSend(saltSecret, webhookTarget string) (*http.Response, error) {
 	hook := &GoWebHook{}
 	hook.Create(w, w.Path, saltSecret)

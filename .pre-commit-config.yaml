@@ -29,7 +29,7 @@ repos:
     #
     # StructSlop
     #
-    -   id: go-structslop-mod
+    #-   id: go-structslop-mod
     #
     # Formatters
     #

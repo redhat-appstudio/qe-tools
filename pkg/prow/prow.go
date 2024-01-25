@@ -41,7 +41,8 @@ func (as *ArtifactScanner) Run() error {
 	var pjYAML *v1.ProwJob
 	var err error
 
-	if as.config.ProwJobID != "" {
+	switch {
+	case as.config.ProwJobID != "":
 		pjYAML, err = getProwJobYAML(as.config.ProwJobID)
 		if err != nil {
 			return fmt.Errorf("failed to get prow job yaml: %+v", err)
@@ -54,7 +55,8 @@ func (as *ArtifactScanner) Run() error {
 
 		pjURL = pjYAML.Status.URL
 		klog.Infof("got the prow job URL: %s", pjURL)
-	} else if as.config.ProwJobURL != "" {
+
+	case as.config.ProwJobURL != "":
 		pjURL = as.config.ProwJobURL
 		klog.Infof("got the prow job URL: %s", pjURL)
 
@@ -62,7 +64,8 @@ func (as *ArtifactScanner) Run() error {
 		if err != nil {
 			return fmt.Errorf("failed to determine job target: %+v", err)
 		}
-	} else {
+
+	default:
 		return fmt.Errorf("ScannerConfig doesn't contain neither ProwJobID nor ProwJobURL")
 	}
 
@@ -179,25 +182,28 @@ func determineJobTargetFromYAML(pjYAML *v1.ProwJob) (jobTarget string, err error
 	return "", fmt.Errorf("%s expected %+v to contain arg --target", errPrefix, args)
 }
 
+// ParseJobSpec parses and then returns the openshift job spec data
 func ParseJobSpec(jobSpecData string) (*OpenshiftJobSpec, error) {
-	var openshiftJobSpec = &OpenshiftJobSpec{}
+	openshiftJobSpec := &OpenshiftJobSpec{}
 
 	if err := json.Unmarshal([]byte(jobSpecData), openshiftJobSpec); err != nil {
-		return nil, fmt.Errorf("error when parsing openshift job spec data: %v", err)
+		return nil, fmt.Errorf("error occurred when parsing openshift job spec data: %v", err)
 	}
 	return openshiftJobSpec, nil
 }
 
-func determineJobTargetFromProwJobURL(ProwJobURL string) (jobTarget string, err error) {
-	if strings.Contains(ProwJobURL, "pull-ci-redhat-appstudio-infra-deployments") {
+func determineJobTargetFromProwJobURL(prowJobURL string) (jobTarget string, err error) {
+	switch {
+	case strings.Contains(prowJobURL, "pull-ci-redhat-appstudio-infra-deployments"):
 		// prow URL is from infra-deployments repo
 		jobTarget = "appstudio-e2e-tests"
-	} else if strings.Contains(ProwJobURL, "pull-ci-redhat-appstudio-e2e-tests") {
+	case strings.Contains(prowJobURL, "pull-ci-redhat-appstudio-e2e-tests"):
 		// prow URL is from e2e-tests repo
 		jobTarget = "redhat-appstudio-e2e"
-	} else {
-		return "", fmt.Errorf("unable to determine the target from the ProwJobURL: %s", ProwJobURL)
+	default:
+		return "", fmt.Errorf("unable to determine the target from the ProwJobURL: %s", prowJobURL)
 	}
+
 	return jobTarget, nil
 }
 
