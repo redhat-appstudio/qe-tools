@@ -36,7 +36,7 @@ const (
 	buildLogFilename = "build-log.txt"
 	finishedFilename = "finished.json"
 
-	gcsBrowserURLPrefix = "https://gcsweb-ci.apps.ci.l2s4.p1.openshiftapps.com/gcs/origin-ci-test/"
+	gcsBrowserURLPrefix = "https://gcsweb-ci.apps.ci.l2s4.p1.openshiftapps.com/gcs/test-platform-results/"
 
 	reportPortalFormatParamName = "report-portal-format"
 	stepsToSkipParamName        = "skip-ci-steps"
