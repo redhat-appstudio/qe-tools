@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/redhat-appstudio/qe-tools/pkg/customjunit"
 	"github.com/redhat-appstudio/qe-tools/pkg/types"
@@ -36,10 +37,11 @@ const (
 	buildLogFilename = "build-log.txt"
 	finishedFilename = "finished.json"
 
-	gcsBrowserURLPrefix = "https://gcsweb-ci.apps.ci.l2s4.p1.openshiftapps.com/gcs/origin-ci-test/"
+	gcsBrowserURLPrefix = "https://gcsweb-ci.apps.ci.l2s4.p1.openshiftapps.com/gcs/test-platform-results/"
 
 	reportPortalFormatParamName = "report-portal-format"
 	stepsToSkipParamName        = "skip-ci-steps"
+	openshiftCITestSuiteName    = "openshift-ci job"
 )
 
 // createReportCmd represents the createReport command
@@ -74,9 +76,9 @@ var createReportCmd = &cobra.Command{
 		}
 
 		overallJUnitSuites := &reporters.JUnitTestSuites{}
-		openshiftCiJunit := reporters.JUnitTestSuite{Name: "openshift-ci job", Properties: reporters.JUnitProperties{Properties: []reporters.JUnitProperty{}}}
+		openshiftCiJunit := reporters.JUnitTestSuite{Name: openshiftCITestSuiteName, Properties: reporters.JUnitProperties{Properties: []reporters.JUnitProperty{}}}
 
-		htmlReportLink := gcsBrowserURLPrefix + scanner.ObjectPrefix + "redhat-appstudio-report/artifacts/junit-summary.html"
+		htmlReportLink := gcsBrowserURLPrefix + scanner.ArtifactDirectoryPrefix + "redhat-appstudio-report/artifacts/junit-summary.html"
 		openshiftCiJunit.Properties.Properties = append(openshiftCiJunit.Properties.Properties, reporters.JUnitProperty{Name: "html-report-link", Value: htmlReportLink})
 
 		for stepName, artifactsFilenameMap := range scanner.ArtifactStepMap {
@@ -122,6 +124,13 @@ var createReportCmd = &cobra.Command{
 
 		if err := os.MkdirAll(artifactDir, 0o750); err != nil {
 			return fmt.Errorf("failed to create directory for results '%s': %+v", artifactDir, err)
+		}
+
+		// Add timestamp to openshift-ci job
+		if len(overallJUnitSuites.TestSuites) > 0 {
+			openshiftCiJunit.Timestamp = overallJUnitSuites.TestSuites[0].Timestamp
+		} else {
+			openshiftCiJunit.Timestamp = time.Now().Format("2006-01-02T15:04:05")
 		}
 
 		overallJUnitSuites.TestSuites = append(overallJUnitSuites.TestSuites, openshiftCiJunit)

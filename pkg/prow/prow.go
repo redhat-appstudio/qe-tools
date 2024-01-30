@@ -37,32 +37,48 @@ func NewArtifactScanner(cfg ScannerConfig) (*ArtifactScanner, error) {
 // Run processes the artifacts associated with the Prow job and store required files
 // with their associated openshift-ci step names and their content in ArtifactStepMap
 func (as *ArtifactScanner) Run() error {
-	pjYAML, err := getProwJobYAML(as.config.ProwJobID)
-	if err != nil {
-		return fmt.Errorf("failed to get prow job yaml: %+v", err)
+	var jobTarget, pjURL string
+	var pjYAML *v1.ProwJob
+	var err error
+
+	switch {
+	case as.config.ProwJobID != "":
+		pjYAML, err = getProwJobYAML(as.config.ProwJobID)
+		if err != nil {
+			return fmt.Errorf("failed to get prow job yaml: %+v", err)
+		}
+
+		jobTarget, err = determineJobTargetFromYAML(pjYAML)
+		if err != nil {
+			return fmt.Errorf("failed to determine job target: %+v", err)
+		}
+
+		pjURL = pjYAML.Status.URL
+		klog.Infof("got the prow job URL: %s", pjURL)
+
+	case as.config.ProwJobURL != "":
+		pjURL = as.config.ProwJobURL
+		klog.Infof("got the prow job URL: %s", pjURL)
+
+		jobTarget, err = determineJobTargetFromProwJobURL(pjURL)
+		if err != nil {
+			return fmt.Errorf("failed to determine job target: %+v", err)
+		}
+
+	default:
+		return fmt.Errorf("ScannerConfig doesn't contain neither ProwJobID nor ProwJobURL")
 	}
 
-	jobTarget, err := determineJobTarget(pjYAML)
+	artifactDirectoryPrefix, err := getArtifactsDirectoryPrefix(as, pjURL, jobTarget)
 	if err != nil {
-		return fmt.Errorf("failed to determine job target: %+v", err)
+		return err
 	}
-
-	pjURL := pjYAML.Status.URL
-	klog.Infof("got the prow job URL: %s", pjURL)
-	// => e.g. [ "https://prow.ci.openshift.org/view/gs", "pr-logs/pull/redhat-appstudio_infra-deployments/123/pull-ci-redhat-appstudio-infra-deployments-main-appstudio-e2e-tests/123" ]
-	sp := strings.Split(pjURL, "/"+bucketName+"/")
-	if len(sp) != 2 {
-		return fmt.Errorf("failed to determine object prefix - prow job url: '%s', bucket name: '%s'", pjURL, bucketName)
-	}
-	// => e.g. "pr-logs/pull/redhat-appstudio_infra-deployments/123/pull-ci-redhat-appstudio-infra-deployments-main-appstudio-e2e-tests/123/artifacts/appstudio-e2e-tests/"
-	objectPrefix := sp[1] + "/artifacts/" + jobTarget + "/"
-	as.ObjectPrefix = objectPrefix
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*2)
 	defer cancel()
 	as.bucketHandle = as.Client.Bucket(bucketName)
 
-	it := as.bucketHandle.Objects(ctx, &storage.Query{Prefix: objectPrefix})
+	it := as.bucketHandle.Objects(ctx, &storage.Query{Prefix: artifactDirectoryPrefix})
 
 	for {
 		attrs, err := it.Next()
@@ -76,9 +92,9 @@ func (as *ArtifactScanner) Run() error {
 		if as.isRequiredFile(fullArtifactName) {
 			klog.Infof("found required file %s", fullArtifactName)
 			// => e.g. [ "", "redhat-appstudio-e2e/artifacts/e2e-report.xml" ]
-			sp := strings.Split(fullArtifactName, objectPrefix)
+			sp := strings.Split(fullArtifactName, artifactDirectoryPrefix)
 			if len(sp) != 2 {
-				return fmt.Errorf("cannot determine filepath - object name: %s, object prefix: %s", fullArtifactName, objectPrefix)
+				return fmt.Errorf("cannot determine filepath - object name: %s, object prefix: %s", fullArtifactName, artifactDirectoryPrefix)
 			}
 			parentStepFilePath := sp[1]
 
@@ -150,7 +166,7 @@ func getProwJobYAML(jobID string) (*v1.ProwJob, error) {
 	return &pj, nil
 }
 
-func determineJobTarget(pjYAML *v1.ProwJob) (jobTarget string, err error) {
+func determineJobTargetFromYAML(pjYAML *v1.ProwJob) (jobTarget string, err error) {
 	errPrefix := "failed to determine job target:"
 	args := pjYAML.Spec.PodSpec.Containers[0].Args
 	for _, arg := range args {
@@ -166,11 +182,41 @@ func determineJobTarget(pjYAML *v1.ProwJob) (jobTarget string, err error) {
 	return "", fmt.Errorf("%s expected %+v to contain arg --target", errPrefix, args)
 }
 
+// ParseJobSpec parses and then returns the openshift job spec data
 func ParseJobSpec(jobSpecData string) (*OpenshiftJobSpec, error) {
-	var openshiftJobSpec = &OpenshiftJobSpec{}
+	openshiftJobSpec := &OpenshiftJobSpec{}
 
 	if err := json.Unmarshal([]byte(jobSpecData), openshiftJobSpec); err != nil {
-		return nil, fmt.Errorf("error when parsing openshift job spec data: %v", err)
+		return nil, fmt.Errorf("error occurred when parsing openshift job spec data: %v", err)
 	}
 	return openshiftJobSpec, nil
+}
+
+func determineJobTargetFromProwJobURL(prowJobURL string) (jobTarget string, err error) {
+	switch {
+	case strings.Contains(prowJobURL, "pull-ci-redhat-appstudio-infra-deployments"):
+		// prow URL is from infra-deployments repo
+		jobTarget = "appstudio-e2e-tests"
+	case strings.Contains(prowJobURL, "pull-ci-redhat-appstudio-e2e-tests"):
+		// prow URL is from e2e-tests repo
+		jobTarget = "redhat-appstudio-e2e"
+	default:
+		return "", fmt.Errorf("unable to determine the target from the ProwJobURL: %s", prowJobURL)
+	}
+
+	return jobTarget, nil
+}
+
+func getArtifactsDirectoryPrefix(artifactScanner *ArtifactScanner, prowJobURL, jobTarget string) (string, error) {
+	// => e.g. [ "https://prow.ci.openshift.org/view/gs", "pr-logs/pull/redhat-appstudio_infra-deployments/123/pull-ci-redhat-appstudio-infra-deployments-main-appstudio-e2e-tests/123" ]
+	sp := strings.Split(prowJobURL, "/"+bucketName+"/")
+	if len(sp) != 2 {
+		return "", fmt.Errorf("failed to determine artifact directory's prefix - prow job url: '%s', bucket name: '%s'", prowJobURL, bucketName)
+	}
+
+	// => e.g. "pr-logs/pull/redhat-appstudio_infra-deployments/123/pull-ci-redhat-appstudio-infra-deployments-main-appstudio-e2e-tests/123/artifacts/appstudio-e2e-tests/"
+	artifactDirectoryPrefix := sp[1] + "/artifacts/" + jobTarget + "/"
+	artifactScanner.ArtifactDirectoryPrefix = artifactDirectoryPrefix
+
+	return artifactDirectoryPrefix, nil
 }
