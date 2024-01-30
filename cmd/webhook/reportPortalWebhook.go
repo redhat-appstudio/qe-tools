@@ -48,6 +48,7 @@ var reportPortalWebhookCmd = &cobra.Command{
 		pullNumber := ""
 		if openshiftJobSpec.Type == "periodic" {
 			openshiftJobSpec.Refs.RepoLink = "https://github.com/redhat-appstudio/infra-deployments"
+			pullNumber = "periodic"
 		} else if (openshiftJobSpec.Refs.Repo == "e2e-tests" || openshiftJobSpec.Refs.Repo == "infra-deployments") && len(openshiftJobSpec.Refs.Pulls) > 0 {
 			pullNumber = strconv.Itoa(openshiftJobSpec.Refs.Pulls[0].Number)
 		} else {
