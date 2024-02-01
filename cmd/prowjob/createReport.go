@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/redhat-appstudio/qe-tools/pkg/customjunit"
 	"github.com/redhat-appstudio/qe-tools/pkg/types"
@@ -123,6 +124,13 @@ var createReportCmd = &cobra.Command{
 
 		if err := os.MkdirAll(artifactDir, 0o750); err != nil {
 			return fmt.Errorf("failed to create directory for results '%s': %+v", artifactDir, err)
+		}
+
+		// Add timestamp to openshift-ci job
+		if len(overallJUnitSuites.TestSuites) > 0 {
+			openshiftCiJunit.Timestamp = overallJUnitSuites.TestSuites[0].Timestamp
+		} else {
+			openshiftCiJunit.Timestamp = time.Now().Format("2006-01-02T15:04:05")
 		}
 
 		overallJUnitSuites.TestSuites = append(overallJUnitSuites.TestSuites, openshiftCiJunit)
