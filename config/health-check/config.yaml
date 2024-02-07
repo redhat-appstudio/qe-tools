@@ -3,6 +3,7 @@ externalServices:
     criticalComponents:
       - registry.redhat.io
       - registry.access.redhat.com
+      - registry.connect.redhat.com
     statusPageURL: https://status.redhat.com/api/v2/summary.json
   - name: quay
     criticalComponents:
