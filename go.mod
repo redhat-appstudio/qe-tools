@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	cloud.google.com/go/storage v1.37.0
-	github.com/GoogleCloudPlatform/testgrid v0.0.168
+	github.com/GoogleCloudPlatform/testgrid v0.0.169
 	github.com/daixiang0/gci v0.12.1
 	github.com/go-critic/go-critic v0.11.0
 	github.com/google/go-github/v56 v56.0.0
