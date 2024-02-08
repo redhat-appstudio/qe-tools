@@ -200,6 +200,9 @@ func determineJobTargetFromProwJobURL(prowJobURL string) (jobTarget string, err 
 	case strings.Contains(prowJobURL, "pull-ci-redhat-appstudio-e2e-tests"):
 		// prow URL is from e2e-tests repo
 		jobTarget = "redhat-appstudio-e2e"
+	case strings.Contains(prowJobURL, "pull-ci-redhat-appstudio-integration-service"):
+		// prow URL is from integration-service repo
+		jobTarget = "integration-service-e2e"
 	default:
 		return "", fmt.Errorf("unable to determine the target from the ProwJobURL: %s", prowJobURL)
 	}
