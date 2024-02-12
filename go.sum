@@ -1196,8 +1196,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.4 h1:mmDVorXM7PCGKw94cs5zk
 github.com/matttproud/golang_protobuf_extensions v1.0.4/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
 github.com/mgechev/dots v0.0.0-20210922191527-e955255bf517 h1:zpIH83+oKzcpryru8ceC6BxnoG8TBrhgAvRg8obzup0=
 github.com/mgechev/dots v0.0.0-20210922191527-e955255bf517/go.mod h1:KQ7+USdGKfpPjXk4Ga+5XxQM4Lm4e3gAogrreFAYpOg=
-github.com/mgechev/revive v1.3.6 h1:ZNKZiHb/LciAqzwa/9HnwI8S/OJutYhMvaqgMT1Ylgo=
-github.com/mgechev/revive v1.3.6/go.mod h1:75Je+5jKBgdgADNzGhsq7H5J6CmyXSzEk9eLOU4i8Pg=
+github.com/mgechev/revive v1.3.7 h1:502QY0vQGe9KtYJ9FpxMz9rL+Fc/P13CI5POL4uHCcE=
+github.com/mgechev/revive v1.3.7/go.mod h1:RJ16jUbF0OWC3co/+XTxmFNgEpUPwnnA0BRllX2aDNA=
 github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8/go.mod h1:mC1jAcsrzbxHt8iiaC+zU4b1ylILSosueou12R++wfY=
 github.com/minio/c2goasm v0.0.0-20190812172519-36a3d3bbc4f3/go.mod h1:RagcQ7I8IeTMnF8JTXieKnO4Z6JCsikNEzj0DwauVzE=
 github.com/mitchellh/go-homedir v1.1.0 h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG+4E0Y=
