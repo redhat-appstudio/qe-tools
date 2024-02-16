@@ -1,0 +1,54 @@
+name: Estimate-review
+
+on:
+  pull_request:
+
+permissions:
+  pull-requests: write
+
+jobs:
+  estimate:
+    runs-on: ubuntu-latest
+    container:
+      image: golang:1.19
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          repository: 'redhat-appstudio/qe-tools'
+      - name: Setup Go environment
+        uses: actions/setup-go@v5
+
+      - name: Run estimate time needed for PR review
+        run: |
+          go run main.go estimate-review \
+            --owner ${{ github.repository_owner }} \
+            --repository ${{ github.event.repository.name }} \
+            --number ${{ github.event.pull_request.number }} \
+            > result
+          cat result
+
+      - name: Add label based on review time
+        run: |
+          reviewTime=$(cat result)
+          label="< 1 min"
+          if [ ${reviewTime} -gt 3600 ]; then
+            label="> 60 min"
+          elif [ ${reviewTime} -gt 1800 ]; then
+            label="30-60 min"
+          elif [ ${reviewTime} -gt 900 ]; then
+            label="15-30 min"
+          elif [ ${reviewTime} -gt 600 ]; then
+            label="10-15 min"
+          elif [ ${reviewTime} -gt 300 ]; then
+            label="5-10 min"
+          elif [ ${reviewTime} -gt 60 ]; then
+            label="1-5 min"
+          fi
+          
+          echo "Adding label: ${label}"
+          curl -s --fail-with-body -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels \
+            -d "[\"${label}\"]"
