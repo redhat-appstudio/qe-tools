@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/redhat-appstudio/qe-tools/cmd/estimate"
 	"github.com/redhat-appstudio/qe-tools/cmd/webhook"
 	"os"
 
@@ -47,6 +48,7 @@ func init() {
 	rootCmd.AddCommand(coffeebreak.CoffeeBreakCmd)
 	rootCmd.AddCommand(sendslackmessage.SendSlackMessageCmd)
 	rootCmd.AddCommand(webhook.WebhookCmd)
+	rootCmd.AddCommand(estimate.EstimateTimeToReviewCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.
