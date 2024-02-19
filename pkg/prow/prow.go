@@ -39,6 +39,7 @@ func NewArtifactScanner(cfg ScannerConfig) (*ArtifactScanner, error) {
 func (as *ArtifactScanner) Run() error {
 	var jobTarget, pjURL string
 	var pjYAML *v1.ProwJob
+	var objectAttrs *storage.ObjectAttrs
 	var err error
 
 	switch {
@@ -80,61 +81,96 @@ func (as *ArtifactScanner) Run() error {
 
 	it := as.bucketHandle.Objects(ctx, &storage.Query{Prefix: artifactDirectoryPrefix})
 
-	for {
-		attrs, err := it.Next()
-		if err == iterator.Done {
-			break
+	objectAttrs, err = it.Next()
+	if err == iterator.Done {
+		klog.Infof("For the job (%s), there are no files present within the directory with prefix: `%s`", pjURL, artifactDirectoryPrefix)
+
+		fileName := "build-log.txt"
+		as.config.FileNameFilter = []string{fileName}
+
+		sp := strings.Split(pjURL, "/"+bucketName+"/")
+		if len(sp) != 2 {
+			return fmt.Errorf("failed to determine artifact directory's prefix - prow job url: '%s', bucket name: '%s'", pjURL, bucketName)
 		}
-		if err != nil {
-			return fmt.Errorf("failed to iterate over storage objects: %+v", err)
+		buildLogPrefix := sp[1] + "/" + fileName
+
+		it = as.bucketHandle.Objects(ctx, &storage.Query{Prefix: buildLogPrefix})
+		for {
+			attrs, err := it.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				return fmt.Errorf("failed to iterate over storage objects: %+v", err)
+			}
+			fullArtifactName := attrs.Name
+
+			parentStepName := "/"
+			if err = as.initArtifactStepMap(ctx, fileName, fullArtifactName, parentStepName); err != nil {
+				return err
+			}
 		}
-		fullArtifactName := attrs.Name
-		if as.isRequiredFile(fullArtifactName) {
-			klog.Infof("found required file %s", fullArtifactName)
-			// => e.g. [ "", "redhat-appstudio-e2e/artifacts/e2e-report.xml" ]
-			sp := strings.Split(fullArtifactName, artifactDirectoryPrefix)
-			if len(sp) != 2 {
-				return fmt.Errorf("cannot determine filepath - object name: %s, object prefix: %s", fullArtifactName, artifactDirectoryPrefix)
-			}
-			parentStepFilePath := sp[1]
-
-			// => e.g. [ "redhat-appstudio-e2e", "artifacts", "e2e-report.xml" ]
-			sp = strings.Split(parentStepFilePath, "/")
-			parentStepName := sp[0]
-
-			if slices.Contains(as.config.StepsToSkip, parentStepName) {
-				klog.Infof("skipping step name %s", parentStepName)
-				continue
-			}
-
-			fileName := sp[len(sp)-1]
-
-			rc, err := as.bucketHandle.Object(fullArtifactName).NewReader(ctx)
+	} else {
+		for {
 			if err != nil {
-				return fmt.Errorf("failed to create objecthandle for %s: %+v", fullArtifactName, err)
+				return fmt.Errorf("failed to iterate over storage objects: %+v", err)
 			}
-			data, err := io.ReadAll(rc)
-			if err != nil {
-				return fmt.Errorf("cannot read from storage reader: %+v", err)
-			}
-
-			artifact := Artifact{Content: string(data), FullName: fullArtifactName}
-
-			// No artifact step map not initialized yet
-			if as.ArtifactStepMap == nil {
-				newArtifactMap := ArtifactFilenameMap{ArtifactFilename(fileName): artifact}
-				as.ArtifactStepMap = map[ArtifactStepName]ArtifactFilenameMap{ArtifactStepName(parentStepName): newArtifactMap}
-			} else {
-				// Already have a record of an artifact being mapped to a step name
-				if afMap, ok := as.ArtifactStepMap[ArtifactStepName(parentStepName)]; ok {
-					afMap[ArtifactFilename(fileName)] = artifact
-					as.ArtifactStepMap[ArtifactStepName(parentStepName)] = afMap
-				} else { // Artifact map initialized, but the artifact filename does not belong to any collected step
-					as.ArtifactStepMap[ArtifactStepName(parentStepName)] = ArtifactFilenameMap{ArtifactFilename(fileName): artifact}
+			fullArtifactName := objectAttrs.Name
+			if as.isRequiredFile(fullArtifactName) {
+				klog.Infof("found required file %s", fullArtifactName)
+				parentStepName, err := getParentStepName(fullArtifactName, artifactDirectoryPrefix)
+				if err != nil {
+					return err
 				}
+
+				if slices.Contains(as.config.StepsToSkip, parentStepName) {
+					klog.Infof("skipping step name %s", parentStepName)
+					continue
+				}
+
+				fileName := getFileName(fullArtifactName, artifactDirectoryPrefix)
+
+				if err = as.initArtifactStepMap(ctx, fileName, fullArtifactName, parentStepName); err != nil {
+					return err
+				}
+			}
+
+			objectAttrs, err = it.Next()
+			if err == iterator.Done {
+				break
 			}
 		}
 	}
+
+	return nil
+}
+
+func (as *ArtifactScanner) initArtifactStepMap(ctx context.Context, fileName, fullArtifactName, parentStepName string) error {
+	rc, err := as.bucketHandle.Object(fullArtifactName).NewReader(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to create objecthandle for %s: %+v", fullArtifactName, err)
+	}
+	data, err := io.ReadAll(rc)
+	if err != nil {
+		return fmt.Errorf("cannot read from storage reader: %+v", err)
+	}
+
+	artifact := Artifact{Content: string(data), FullName: fullArtifactName}
+
+	// No artifact step map not initialized yet
+	if as.ArtifactStepMap == nil {
+		newArtifactMap := ArtifactFilenameMap{ArtifactFilename(fileName): artifact}
+		as.ArtifactStepMap = map[ArtifactStepName]ArtifactFilenameMap{ArtifactStepName(parentStepName): newArtifactMap}
+	} else {
+		// Already have a record of an artifact being mapped to a step name
+		if afMap, ok := as.ArtifactStepMap[ArtifactStepName(parentStepName)]; ok {
+			afMap[ArtifactFilename(fileName)] = artifact
+			as.ArtifactStepMap[ArtifactStepName(parentStepName)] = afMap
+		} else { // Artifact map initialized, but the artifact filename does not belong to any collected step
+			as.ArtifactStepMap[ArtifactStepName(parentStepName)] = ArtifactFilenameMap{ArtifactFilename(fileName): artifact}
+		}
+	}
+
 	return nil
 }
 
@@ -222,4 +258,29 @@ func getArtifactsDirectoryPrefix(artifactScanner *ArtifactScanner, prowJobURL, j
 	artifactScanner.ArtifactDirectoryPrefix = artifactDirectoryPrefix
 
 	return artifactDirectoryPrefix, nil
+}
+
+func getParentStepName(fullArtifactName, artifactDirectoryPrefix string) (string, error) {
+	// => e.g. [ "", "redhat-appstudio-e2e/artifacts/e2e-report.xml" ]
+	sp := strings.Split(fullArtifactName, artifactDirectoryPrefix)
+	if len(sp) != 2 {
+		return "", fmt.Errorf("cannot determine filepath - object name: %s, object prefix: %s", fullArtifactName, artifactDirectoryPrefix)
+	}
+	parentStepFilePath := sp[1]
+
+	// => e.g. [ "redhat-appstudio-e2e", "artifacts", "e2e-report.xml" ]
+	sp = strings.Split(parentStepFilePath, "/")
+	parentStepName := sp[0]
+
+	return parentStepName, nil
+}
+
+func getFileName(fullArtifactName, artifactDirectoryPrefix string) string {
+	sp := strings.Split(fullArtifactName, artifactDirectoryPrefix)
+	parentStepFilePath := sp[1]
+
+	sp = strings.Split(parentStepFilePath, "/")
+	fileName := sp[len(sp)-1]
+
+	return fileName
 }
