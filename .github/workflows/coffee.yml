@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           repository: 'redhat-appstudio/qe-tools'
       - name: Setup Go environment
