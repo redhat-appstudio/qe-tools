@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/storage v1.37.0
 	github.com/GoogleCloudPlatform/testgrid v0.0.169
 	github.com/daixiang0/gci v0.12.1
-	github.com/go-critic/go-critic v0.11.0
+	github.com/go-critic/go-critic v0.11.1
 	github.com/google/go-github/v56 v56.0.0
 	github.com/gotesttools/gotestfmt/v2 v2.5.0
 	github.com/mgechev/revive v1.3.7
@@ -63,7 +63,7 @@ require (
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/go-toolsmith/astcast v1.1.0 // indirect
 	github.com/go-toolsmith/astcopy v1.1.0 // indirect
-	github.com/go-toolsmith/astequal v1.1.0 // indirect
+	github.com/go-toolsmith/astequal v1.2.0 // indirect
 	github.com/go-toolsmith/astfmt v1.1.0 // indirect
 	github.com/go-toolsmith/astp v1.1.0 // indirect
 	github.com/go-toolsmith/pkgload v1.2.2 // indirect
