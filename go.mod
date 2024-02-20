@@ -13,7 +13,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.15.0
 	github.com/orijtech/structslop v0.0.8
 	github.com/redhat-appstudio-qe/junit2html v0.0.0-20231122104025-4c86e177eec8
-	github.com/securego/gosec/v2 v2.18.2
+	github.com/securego/gosec/v2 v2.19.0
 	github.com/slack-go/slack v0.12.4
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.2
@@ -39,7 +39,7 @@ require (
 	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blendle/zapdriver v1.3.1 // indirect
-	github.com/ccojocar/zxcvbn-go v1.0.1 // indirect
+	github.com/ccojocar/zxcvbn-go v1.0.2 // indirect
 	github.com/census-instrumentation/opencensus-proto v0.4.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chavacava/garif v0.1.0 // indirect
