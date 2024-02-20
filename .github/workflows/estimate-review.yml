@@ -26,8 +26,11 @@ jobs:
             --owner ${{ github.repository_owner }} \
             --repository ${{ github.event.repository.name }} \
             --number ${{ github.event.pull_request.number }} \
+            --config ${{ env.CONFIG_PATH }} \
             > result
           cat result
+        env:
+          CONFIG_PATH: 'config/estimate/estimateWeights.yaml'
 
       - name: Add label based on review time
         run: |

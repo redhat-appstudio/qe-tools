@@ -22,6 +22,7 @@ require (
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
 	golang.org/x/tools v0.18.0
 	google.golang.org/api v0.164.0
+	gopkg.in/yaml.v3 v3.0.1
 	honnef.co/go/tools v0.4.6
 	k8s.io/klog/v2 v2.120.1
 	k8s.io/test-infra v0.0.0-20231026093210-34e553baa873
@@ -160,7 +161,6 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/api v0.27.4 // indirect
 	k8s.io/apimachinery v0.27.4 // indirect
 	k8s.io/client-go v0.25.9 // indirect

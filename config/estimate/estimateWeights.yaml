@@ -1,0 +1,12 @@
+"base": 1
+"deletion": 0.5
+
+"extensions":
+  "go":  1
+  "sum": 0.1
+  "mod": 0.5
+  "sh": 1.5
+  "yml":  2
+  "yaml": 2
+  "json": 2
+  "md": 0.2
