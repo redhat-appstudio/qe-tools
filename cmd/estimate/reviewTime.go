@@ -30,6 +30,7 @@ var (
 	owner      string
 	repository string
 	prNumber   int
+	ghToken    string
 
 	human bool
 )
@@ -59,6 +60,9 @@ var EstimateTimeToReviewCmd = &cobra.Command{
 
 func EstimateTimeToReview(owner, repository string, number int) (int, error) {
 	client := github.NewClient(nil)
+	if ghToken != "" {
+		client.WithAuthToken(ghToken)
+	}
 
 	files, err := getChangedFiles(client, owner, repository, number)
 	if err != nil {
@@ -153,6 +157,7 @@ func init() {
 	if err != nil { // silence golangci-lint
 		return
 	}
+	EstimateTimeToReviewCmd.Flags().StringVar(&ghToken, "token", "", "GitHub token")
 
 	EstimateTimeToReviewCmd.Flags().BoolVar(&human, "human", false, "human readable form")
 }

@@ -27,6 +27,7 @@ jobs:
             --repository ${{ github.event.repository.name }} \
             --number ${{ github.event.pull_request.number }} \
             --config ${{ env.CONFIG_PATH }} \
+            --token ${{ github.token }}
             > result
           cat result
         env:
