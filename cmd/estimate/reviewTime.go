@@ -158,10 +158,13 @@ func estimateFileTimes(files []*github.CommitFile) int {
 		if len(extension) > 0 {
 			extension = extension[1:]
 		}
-		estimate := config.Extensions[extension]
-		if estimate == 0 {
-			estimate = defaultExtensionWeight
-			klog.Warningf("Weight for '%s' extension not specified. Using default weight '%.1f'.\n", extension, defaultExtensionWeight)
+		estimate, included := config.Extensions[extension]
+		if !included {
+			estimate, defaultIncluded := config.Extensions["default"]
+			if !defaultIncluded {
+				estimate = defaultExtensionWeight
+			}
+			klog.Warningf("Weight for '%s' extension not specified. Using default weight '%.1f'.\n", extension, estimate)
 		}
 
 		result += float64(file.GetAdditions()) * estimate * config.Base

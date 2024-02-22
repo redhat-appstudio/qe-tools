@@ -10,6 +10,7 @@ files:
   ceiling: 2
 
 extensions:
+  default: 2
   go:  1
   sum: 0.1
   mod: 0.5
