@@ -13,9 +13,16 @@ import (
 )
 
 const (
-	defaultBaseWeight      = 1.0
-	defaultDeletionWeight  = 0.5
+	defaultBaseWeight     = 1.0
+	defaultDeletionWeight = 0.5
+
 	defaultExtensionWeight = 2.0
+
+	defaultCommitWeight  = 0.05
+	defaultCommitCeiling = 2
+
+	defaultFileChangeWeight  = 0.1
+	defaultFileChangeCeiling = 2
 )
 
 type TimeLabel struct {
@@ -23,15 +30,33 @@ type TimeLabel struct {
 	Time int    `yaml:"time"`
 }
 
+type CoefficientConfig struct {
+	Weight  float64 `yaml:"weight"`
+	Ceiling float64 `yaml:"ceiling"`
+}
+
 type configFile struct {
 	Base       float64            `yaml:"base"`
 	Deletion   float64            `yaml:"deletion"`
+	Commit     CoefficientConfig  `yaml:"commit"`
+	Files      CoefficientConfig  `yaml:"files"`
 	Extensions map[string]float64 `yaml:"extensions"`
 	Labels     []TimeLabel        `yaml:"labels"`
 }
 
 var (
-	config     = configFile{Base: -1, Deletion: -1}
+	config = configFile{
+		Base:     defaultBaseWeight,
+		Deletion: defaultDeletionWeight,
+		Commit: CoefficientConfig{
+			Weight:  defaultCommitWeight,
+			Ceiling: defaultCommitCeiling,
+		},
+		Files: CoefficientConfig{
+			Weight:  defaultFileChangeWeight,
+			Ceiling: defaultFileChangeCeiling,
+		},
+	}
 	configPath string
 
 	owner      string
@@ -96,13 +121,15 @@ func EstimateTimeToReview(client *github.Client, owner, repository string, numbe
 		return -1, err
 	}
 
-	commitCoefficient := 1 + 0.1*(float64(commitCount)-1)
-	fileCoefficient := 1 + 0.1*(float64(len(files))-1)
-	if commitCoefficient > 2 {
-		commitCoefficient = 2
+	commitCoefficient := 1 + config.Commit.Weight*(float64(commitCount)-1)
+	fileCoefficient := 1 + config.Files.Weight*(float64(len(files))-1)
+
+	if commitCoefficient > config.Commit.Ceiling {
+		commitCoefficient = config.Commit.Ceiling
 	}
-	if fileCoefficient > 2 {
-		fileCoefficient = 2
+
+	if fileCoefficient > config.Files.Ceiling {
+		fileCoefficient = config.Files.Ceiling
 	}
 
 	result := int(commitCoefficient * fileCoefficient * float64(estimateFileTimes(files)))
@@ -158,14 +185,6 @@ func parseConfig(configPath string, cf *configFile) error {
 	}
 	if len(cf.Extensions) == 0 {
 		klog.Warningf("'extensions' list not specified")
-	}
-	if cf.Base == -1 {
-		klog.Warningf("Weight for 'base' not specified. Using default weight '%.1f'", defaultBaseWeight)
-		cf.Base = defaultBaseWeight
-	}
-	if cf.Deletion == -1 {
-		klog.Warningf("Weight for 'deletion' not specified. Using default weight '%.1f'", defaultDeletionWeight)
-		cf.Deletion = defaultDeletionWeight
 	}
 	if err != nil {
 		return fmt.Errorf("error during unmarshaling %v", err)
