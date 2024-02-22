@@ -9,20 +9,22 @@ permissions:
 jobs:
   estimate:
     runs-on: ubuntu-latest
-    container:
-      image: golang:1.19
 
     steps:
       - name: Check out code
         uses: actions/checkout@v4
         with:
           repository: 'redhat-appstudio/qe-tools'
+
       - name: Setup Go environment
         uses: actions/setup-go@v5
 
+      - name: Build qe-tools
+        run: make build
+
       - name: Run estimate time needed for PR review
         run: |
-          go run main.go estimate-review \
+          ./qe-tools estimate-review \
             --owner ${{ github.repository_owner }} \
             --repository ${{ github.event.repository.name }} \
             --number ${{ github.event.pull_request.number }} \
