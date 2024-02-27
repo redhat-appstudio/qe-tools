@@ -33,4 +33,4 @@ jobs:
             --add-label \
             --human
         env:
-          CONFIG_PATH: 'config/estimate/estimateWeights.yaml'
+          CONFIG_PATH: 'config/estimate/config.yaml'

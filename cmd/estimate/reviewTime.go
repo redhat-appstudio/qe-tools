@@ -4,11 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/goccy/go-yaml"
 	"github.com/google/go-github/v56/github"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"k8s.io/klog/v2"
-	"os"
 	"regexp"
 )
 
@@ -23,6 +22,8 @@ const (
 
 	defaultFileChangeWeight  = 0.1
 	defaultFileChangeCeiling = 2
+
+	defaultConfigPath = "./config/estimate"
 )
 
 type TimeLabel struct {
@@ -57,8 +58,6 @@ var (
 			Ceiling: defaultFileChangeCeiling,
 		},
 	}
-	configPath string
-
 	owner      string
 	repository string
 	prNumber   int
@@ -77,14 +76,16 @@ var EstimateTimeToReviewCmd = &cobra.Command{
 		if addLabel && ghToken == "" {
 			return fmt.Errorf("github token needs to be specified to add a label")
 		}
+		viper.AddConfigPath(defaultConfigPath)
+		if err := viper.ReadInConfig(); err != nil {
+			return fmt.Errorf("error reading in config: %+v", err)
+		}
+		if err := viper.Unmarshal(&config); err != nil {
+			return fmt.Errorf("failed to parse config: %+v", err)
+		}
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := parseConfig(configPath, &config)
-		if err != nil {
-			return err
-		}
-
 		client := github.NewClient(nil)
 		if ghToken != "" {
 			client.WithAuthToken(ghToken)
@@ -173,28 +174,6 @@ func estimateFileTimes(files []*github.CommitFile) int {
 	return int(result)
 }
 
-func parseConfig(configPath string, cf *configFile) error {
-	yamlFile, err := os.ReadFile(configPath)
-	if err != nil {
-		return fmt.Errorf("error reading file at '%s': %v", configPath, err)
-	}
-	err = yaml.Unmarshal(yamlFile, cf)
-	if err != nil {
-		return err
-	}
-	if addLabel && len(cf.Labels) == 0 {
-		return emptyLabelsError
-
-	}
-	if len(cf.Extensions) == 0 {
-		klog.Warningf("'extensions' list not specified")
-	}
-	if err != nil {
-		return fmt.Errorf("error during unmarshaling %v", err)
-	}
-	return nil
-}
-
 func addLabelToPR(client *github.Client, reviewTime int) error {
 	existingLabels, err := listLabels(client)
 	if err != nil {
@@ -256,11 +235,6 @@ func init() {
 	EstimateTimeToReviewCmd.Flags().StringVar(&repository, "repository", "e2e-tests", "name of the repository")
 	EstimateTimeToReviewCmd.Flags().IntVar(&prNumber, "number", 1, "number of the pull request")
 	err := EstimateTimeToReviewCmd.MarkFlagRequired("number")
-	if err != nil { // silence golangci-lint
-		return
-	}
-	EstimateTimeToReviewCmd.Flags().StringVar(&configPath, "config", "", "path to the yaml config file")
-	err = EstimateTimeToReviewCmd.MarkFlagRequired("config")
 	if err != nil { // silence golangci-lint
 		return
 	}
