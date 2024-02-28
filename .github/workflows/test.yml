@@ -31,3 +31,6 @@ jobs:
 
       - name: go mod tidy
         run: go mod tidy
+
+      - name: Run tests
+        run: make test
