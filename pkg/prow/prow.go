@@ -3,6 +3,7 @@ package prow
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -96,7 +97,7 @@ func (as *ArtifactScanner) processStorageObjects(ctx context.Context, it *storag
 	var err error
 
 	objectAttrs, err = it.Next()
-	if err == iterator.Done {
+	if errors.Is(err, iterator.Done) {
 		// No files present within the target directory - get the root build-log.txt instead.
 		if err := as.handleEmptyDirectory(ctx, pjURL, artifactDirectoryPrefix); err != nil {
 			return err
@@ -115,7 +116,7 @@ func (as *ArtifactScanner) processStorageObjects(ctx context.Context, it *storag
 			}
 
 			objectAttrs, err = it.Next()
-			if err == iterator.Done {
+			if errors.Is(err, iterator.Done) {
 				break
 			}
 		}
@@ -143,7 +144,7 @@ func (as *ArtifactScanner) handleEmptyDirectory(ctx context.Context, pjURL, arti
 	it := as.bucketHandle.Objects(ctx, &storage.Query{Prefix: buildLogPrefix})
 	for {
 		attrs, err := it.Next()
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
