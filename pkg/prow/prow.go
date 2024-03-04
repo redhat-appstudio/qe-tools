@@ -34,103 +34,82 @@ func NewArtifactScanner(cfg ScannerConfig) (*ArtifactScanner, error) {
 	}, nil
 }
 
-// Run processes the artifacts associated with the Prow job and store required files
-// with their associated openshift-ci step names and their content in ArtifactStepMap
+// Run processes the artifacts associated with the Prow job and stores required files
+// with their associated openshift-ci step names and their content in ArtifactStepMap.
 func (as *ArtifactScanner) Run() error {
-	var jobTarget, pjURL string
-	var pjYAML *v1.ProwJob
-	var objectAttrs *storage.ObjectAttrs
-	var err error
-
-	switch {
-	case as.config.ProwJobID != "":
-		pjYAML, err = getProwJobYAML(as.config.ProwJobID)
-		if err != nil {
-			return fmt.Errorf("failed to get prow job yaml: %+v", err)
-		}
-
-		jobTarget, err = determineJobTargetFromYAML(pjYAML)
-		if err != nil {
-			return fmt.Errorf("failed to determine job target: %+v", err)
-		}
-
-		pjURL = pjYAML.Status.URL
-		klog.Infof("got the prow job URL: %s", pjURL)
-
-	case as.config.ProwJobURL != "":
-		pjURL = as.config.ProwJobURL
-		klog.Infof("got the prow job URL: %s", pjURL)
-
-		jobTarget, err = determineJobTargetFromProwJobURL(pjURL)
-		if err != nil {
-			return fmt.Errorf("failed to determine job target: %+v", err)
-		}
-
-	default:
-		return fmt.Errorf("ScannerConfig doesn't contain neither ProwJobID nor ProwJobURL")
+	// Determine job target and Prow job URL.
+	jobTarget, pjURL, err := as.determineJobDetails()
+	if err != nil {
+		return fmt.Errorf("failed to determine job details: %+v", err)
 	}
 
 	artifactDirectoryPrefix, err := getArtifactsDirectoryPrefix(as, pjURL, jobTarget)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get artifact directory prefix: %+v", err)
 	}
 
+	// Iterate over storage objects.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*2)
 	defer cancel()
 	as.bucketHandle = as.Client.Bucket(bucketName)
-
 	it := as.bucketHandle.Objects(ctx, &storage.Query{Prefix: artifactDirectoryPrefix})
+
+	// Process storage objects.
+	if err := as.processStorageObjects(ctx, it, artifactDirectoryPrefix, pjURL); err != nil {
+		return fmt.Errorf("failed to process storage objects: %+v", err)
+	}
+
+	return nil
+}
+
+// Helper function to determine job details.
+func (as *ArtifactScanner) determineJobDetails() (jobTarget, pjURL string, err error) {
+	switch {
+	case as.config.ProwJobID != "":
+		pjYAML, err := getProwJobYAML(as.config.ProwJobID)
+		if err != nil {
+			return "", "", fmt.Errorf("failed to get Prow job YAML: %+v", err)
+		}
+		jobTarget, err = determineJobTargetFromYAML(pjYAML)
+		if err != nil {
+			return "", "", fmt.Errorf("failed to determine job target from YAML: %+v", err)
+		}
+		pjURL = pjYAML.Status.URL
+
+	case as.config.ProwJobURL != "":
+		pjURL = as.config.ProwJobURL
+		jobTarget, err = determineJobTargetFromProwJobURL(pjURL)
+		if err != nil {
+			return "", "", fmt.Errorf("failed to determine job target from Prow job URL: %+v", err)
+		}
+
+	default:
+		return "", "", fmt.Errorf("ScannerConfig doesn't contain either ProwJobID or ProwJobURL")
+	}
+
+	return jobTarget, pjURL, nil
+}
+
+// Helper function to process storage objects.
+func (as *ArtifactScanner) processStorageObjects(ctx context.Context, it *storage.ObjectIterator, artifactDirectoryPrefix, pjURL string) error {
+	var objectAttrs *storage.ObjectAttrs
+	var err error
 
 	objectAttrs, err = it.Next()
 	if err == iterator.Done {
-		klog.Infof("For the job (%s), there are no files present within the directory with prefix: `%s`", pjURL, artifactDirectoryPrefix)
-
-		fileName := "build-log.txt"
-		as.config.FileNameFilter = []string{fileName}
-
-		sp := strings.Split(pjURL, "/"+bucketName+"/")
-		if len(sp) != 2 {
-			return fmt.Errorf("failed to determine artifact directory's prefix - prow job url: '%s', bucket name: '%s'", pjURL, bucketName)
-		}
-		buildLogPrefix := sp[1] + "/" + fileName
-
-		it = as.bucketHandle.Objects(ctx, &storage.Query{Prefix: buildLogPrefix})
-		for {
-			attrs, err := it.Next()
-			if err == iterator.Done {
-				break
-			}
-			if err != nil {
-				return fmt.Errorf("failed to iterate over storage objects: %+v", err)
-			}
-			fullArtifactName := attrs.Name
-
-			parentStepName := "/"
-			if err = as.initArtifactStepMap(ctx, fileName, fullArtifactName, parentStepName); err != nil {
-				return err
-			}
+		// No files present within the target directory - get the root build-log.txt instead.
+		if err := as.handleEmptyDirectory(ctx, pjURL, artifactDirectoryPrefix); err != nil {
+			return err
 		}
 	} else {
+		// Iterate over storage objects.
 		for {
 			if err != nil {
 				return fmt.Errorf("failed to iterate over storage objects: %+v", err)
 			}
 			fullArtifactName := objectAttrs.Name
 			if as.isRequiredFile(fullArtifactName) {
-				klog.Infof("found required file %s", fullArtifactName)
-				parentStepName, err := getParentStepName(fullArtifactName, artifactDirectoryPrefix)
-				if err != nil {
-					return err
-				}
-
-				if slices.Contains(as.config.StepsToSkip, parentStepName) {
-					klog.Infof("skipping step name %s", parentStepName)
-					continue
-				}
-
-				fileName := getFileName(fullArtifactName, artifactDirectoryPrefix)
-
-				if err = as.initArtifactStepMap(ctx, fileName, fullArtifactName, parentStepName); err != nil {
+				if err := as.processRequiredFile(fullArtifactName, artifactDirectoryPrefix); err != nil {
 					return err
 				}
 			}
@@ -145,6 +124,64 @@ func (as *ArtifactScanner) Run() error {
 	return nil
 }
 
+// Helper function to handle an empty directory.
+func (as *ArtifactScanner) handleEmptyDirectory(ctx context.Context, pjURL, artifactDirectoryPrefix string) error {
+	klog.Infof("For the job (%s), there are no files present within the directory with prefix: `%s`", pjURL, artifactDirectoryPrefix)
+
+	// Set up default file name filter.
+	fileName := "build-log.txt"
+	as.config.FileNameFilter = []string{fileName}
+
+	// Check for build log file.
+	sp := strings.Split(pjURL, "/"+bucketName+"/")
+	if len(sp) != 2 {
+		return fmt.Errorf("failed to determine artifact directory's prefix - Prow job URL: '%s', bucket name: '%s'", pjURL, bucketName)
+	}
+	buildLogPrefix := sp[1] + "/" + fileName
+
+	// Iterate over build log files.
+	it := as.bucketHandle.Objects(ctx, &storage.Query{Prefix: buildLogPrefix})
+	for {
+		attrs, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("failed to iterate over storage objects: %+v", err)
+		}
+		fullArtifactName := attrs.Name
+
+		if err := as.initArtifactStepMap(ctx, fileName, fullArtifactName, "/"); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Helper function to process a required file.
+func (as *ArtifactScanner) processRequiredFile(fullArtifactName, artifactDirectoryPrefix string) error {
+	parentStepName, err := getParentStepName(fullArtifactName, artifactDirectoryPrefix)
+	if err != nil {
+		return err
+	}
+
+	if slices.Contains(as.config.StepsToSkip, parentStepName) {
+		klog.Infof("Skipping step name %s", parentStepName)
+		return nil
+	}
+
+	fileName := getFileName(fullArtifactName, artifactDirectoryPrefix)
+
+	if err := as.initArtifactStepMap(context.Background(), fileName, fullArtifactName, parentStepName); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Helper function to initialise/update the ArtifactStepMap with content
+// of a file with given 'fileName', within the given 'parentStepName'
 func (as *ArtifactScanner) initArtifactStepMap(ctx context.Context, fileName, fullArtifactName, parentStepName string) error {
 	rc, err := as.bucketHandle.Object(fullArtifactName).NewReader(ctx)
 	if err != nil {
@@ -174,6 +211,8 @@ func (as *ArtifactScanner) initArtifactStepMap(ctx context.Context, fileName, fu
 	return nil
 }
 
+// Helper function to check if a file with given 'fullArtifactName',
+// matches the file-name filter(s) defined within ScannerConfig struct
 func (as *ArtifactScanner) isRequiredFile(fullArtifactName string) bool {
 	return slices.ContainsFunc(as.config.FileNameFilter, func(s string) bool {
 		re := regexp.MustCompile(s)
