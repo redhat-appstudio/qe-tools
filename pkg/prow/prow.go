@@ -102,23 +102,24 @@ func (as *ArtifactScanner) processStorageObjects(ctx context.Context, it *storag
 		if err := as.handleEmptyDirectory(ctx, pjURL, artifactDirectoryPrefix); err != nil {
 			return err
 		}
-	} else {
-		// Iterate over storage objects.
-		for {
-			if err != nil {
-				return fmt.Errorf("failed to iterate over storage objects: %+v", err)
-			}
-			fullArtifactName := objectAttrs.Name
-			if as.isRequiredFile(fullArtifactName) {
-				if err := as.processRequiredFile(fullArtifactName, artifactDirectoryPrefix); err != nil {
-					return err
-				}
-			}
+		return nil
+	}
 
-			objectAttrs, err = it.Next()
-			if errors.Is(err, iterator.Done) {
-				break
+	// Iterate over storage objects.
+	for {
+		if err != nil {
+			return fmt.Errorf("failed to iterate over storage objects: %+v", err)
+		}
+		fullArtifactName := objectAttrs.Name
+		if as.isRequiredFile(fullArtifactName) {
+			if err := as.processRequiredFile(fullArtifactName, artifactDirectoryPrefix); err != nil {
+				return err
 			}
+		}
+
+		objectAttrs, err = it.Next()
+		if errors.Is(err, iterator.Done) {
+			break
 		}
 	}
 
@@ -194,19 +195,20 @@ func (as *ArtifactScanner) initArtifactStepMap(ctx context.Context, fileName, fu
 	}
 
 	artifact := Artifact{Content: string(data), FullName: fullArtifactName}
+	newArtifactMap := ArtifactFilenameMap{ArtifactFilename(fileName): artifact}
 
 	// No artifact step map not initialized yet
 	if as.ArtifactStepMap == nil {
-		newArtifactMap := ArtifactFilenameMap{ArtifactFilename(fileName): artifact}
 		as.ArtifactStepMap = map[ArtifactStepName]ArtifactFilenameMap{ArtifactStepName(parentStepName): newArtifactMap}
-	} else {
-		// Already have a record of an artifact being mapped to a step name
-		if afMap, ok := as.ArtifactStepMap[ArtifactStepName(parentStepName)]; ok {
-			afMap[ArtifactFilename(fileName)] = artifact
-			as.ArtifactStepMap[ArtifactStepName(parentStepName)] = afMap
-		} else { // Artifact map initialized, but the artifact filename does not belong to any collected step
-			as.ArtifactStepMap[ArtifactStepName(parentStepName)] = ArtifactFilenameMap{ArtifactFilename(fileName): artifact}
-		}
+		return nil
+	}
+
+	// Already have a record of an artifact being mapped to a step name
+	if afMap, ok := as.ArtifactStepMap[ArtifactStepName(parentStepName)]; ok {
+		afMap[ArtifactFilename(fileName)] = artifact
+		as.ArtifactStepMap[ArtifactStepName(parentStepName)] = afMap
+	} else { // Artifact map initialized, but the artifact filename does not belong to any collected step
+		as.ArtifactStepMap[ArtifactStepName(parentStepName)] = newArtifactMap
 	}
 
 	return nil
