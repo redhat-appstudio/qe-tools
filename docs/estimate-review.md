@@ -46,7 +46,7 @@ These coefficients support having a ceiling (won't go above the specified value)
 ## Configuration
 Configuration is done via a yaml file. 
 
-**Please take a look at the provided [YAML config file](../config/estimate/estimateWeights.yaml)**
+**Please take a look at the provided [YAML config file](../config/estimate/config.yaml)**
 
 ### Required
 #### labels
