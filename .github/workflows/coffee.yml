@@ -9,7 +9,7 @@ jobs:
   coffee-break:
     runs-on: ubuntu-latest
     container:
-      image: golang:1.19
+      image: golang:1.22
 
     steps:
       - name: Check out code
