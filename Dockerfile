@@ -15,7 +15,11 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o qe-tools main.go
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3
 
+USER 65532:65532
+
+WORKDIR /qe-tools
+
 COPY --from=builder /opt/app-root/src/qe-tools /usr/bin/
 COPY --from=builder /opt/app-root/src/config config
 
-USER 65532:65532
+
