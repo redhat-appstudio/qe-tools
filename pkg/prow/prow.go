@@ -173,7 +173,10 @@ func (as *ArtifactScanner) processRequiredFile(fullArtifactName, artifactDirecto
 		return nil
 	}
 
-	fileName := getFileName(fullArtifactName, artifactDirectoryPrefix)
+	fileName, err := getFileName(fullArtifactName, artifactDirectoryPrefix)
+	if err != nil {
+		return err
+	}
 
 	if err := as.initArtifactStepMap(context.Background(), fileName, fullArtifactName, parentStepName); err != nil {
 		return err
@@ -317,12 +320,15 @@ func getParentStepName(fullArtifactName, artifactDirectoryPrefix string) (string
 	return parentStepName, nil
 }
 
-func getFileName(fullArtifactName, artifactDirectoryPrefix string) string {
+func getFileName(fullArtifactName, artifactDirectoryPrefix string) (string, error) {
 	sp := strings.Split(fullArtifactName, artifactDirectoryPrefix)
+	if len(sp) != 2 {
+		return "", fmt.Errorf("cannot determine filepath - object name: %s, object prefix: %s", fullArtifactName, artifactDirectoryPrefix)
+	}
 	parentStepFilePath := sp[1]
 
 	sp = strings.Split(parentStepFilePath, "/")
 	fileName := sp[len(sp)-1]
 
-	return fileName
+	return fileName, nil
 }
