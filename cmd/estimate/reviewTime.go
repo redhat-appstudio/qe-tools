@@ -229,7 +229,7 @@ func getLabelBasedOnTime(reviewTime int) (*TimeLabel, error) {
 	}
 	maxLabel := TimeLabel{Time: -1}
 	for _, label := range config.Labels {
-		if label.Time < reviewTime && label.Time > maxLabel.Time {
+		if label.Time <= reviewTime && label.Time > maxLabel.Time {
 			maxLabel = label
 		}
 	}
