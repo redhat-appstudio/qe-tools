@@ -166,7 +166,8 @@ func estimateFileTimes(files []*github.CommitFile) int {
 		}
 		estimate, included := config.Extensions[extension]
 		if !included {
-			estimate, defaultIncluded := config.Extensions["default"]
+			var defaultIncluded bool
+			estimate, defaultIncluded = config.Extensions["default"]
 			if !defaultIncluded {
 				estimate = defaultExtensionWeight
 			}
