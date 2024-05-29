@@ -15,7 +15,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
         with:
-          repository: 'redhat-appstudio/qe-tools'
+          repository: 'konflux-ci/qe-tools'
       - name: Setup Go environment
         uses: actions/setup-go@v5
 

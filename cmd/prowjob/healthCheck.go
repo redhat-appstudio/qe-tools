@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/redhat-appstudio/qe-tools/pkg/types"
+	"github.com/konflux-ci/qe-tools/pkg/types"
 
 	"golang.org/x/exp/slices"
 
@@ -21,7 +21,7 @@ import (
 	prowUtils "k8s.io/test-infra/prow/pod-utils/downwardapi"
 
 	"github.com/google/go-github/v56/github"
-	"github.com/redhat-appstudio/qe-tools/pkg/status"
+	"github.com/konflux-ci/qe-tools/pkg/status"
 )
 
 const (

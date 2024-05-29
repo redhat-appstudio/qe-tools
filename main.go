@@ -1,6 +1,6 @@
 package main
 
-import "github.com/redhat-appstudio/qe-tools/cmd"
+import "github.com/konflux-ci/qe-tools/cmd"
 
 func main() {
 	cmd.Execute()

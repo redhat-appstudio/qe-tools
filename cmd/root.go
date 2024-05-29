@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/redhat-appstudio/qe-tools/cmd/estimate"
-	"github.com/redhat-appstudio/qe-tools/cmd/webhook"
+	"github.com/konflux-ci/qe-tools/cmd/estimate"
+	"github.com/konflux-ci/qe-tools/cmd/webhook"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/redhat-appstudio/qe-tools/cmd/coffeebreak"
-	"github.com/redhat-appstudio/qe-tools/cmd/prowjob"
-	"github.com/redhat-appstudio/qe-tools/cmd/sendslackmessage"
+	"github.com/konflux-ci/qe-tools/cmd/coffeebreak"
+	"github.com/konflux-ci/qe-tools/cmd/prowjob"
+	"github.com/konflux-ci/qe-tools/cmd/sendslackmessage"
 )
 
 var cfgFile string

@@ -1,7 +1,7 @@
 package prowjob
 
 import (
-	"github.com/redhat-appstudio/qe-tools/pkg/types"
+	"github.com/konflux-ci/qe-tools/pkg/types"
 	"github.com/spf13/cobra"
 )
 

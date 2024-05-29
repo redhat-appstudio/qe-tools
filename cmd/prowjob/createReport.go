@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/redhat-appstudio/qe-tools/pkg/customjunit"
-	"github.com/redhat-appstudio/qe-tools/pkg/types"
+	"github.com/konflux-ci/qe-tools/pkg/customjunit"
+	"github.com/konflux-ci/qe-tools/pkg/types"
 
 	"github.com/GoogleCloudPlatform/testgrid/metadata"
-	"github.com/redhat-appstudio/qe-tools/pkg/prow"
+	"github.com/konflux-ci/qe-tools/pkg/prow"
 
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"

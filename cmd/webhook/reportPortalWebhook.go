@@ -5,9 +5,9 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/redhat-appstudio/qe-tools/pkg/prow"
-	"github.com/redhat-appstudio/qe-tools/pkg/types"
-	"github.com/redhat-appstudio/qe-tools/pkg/webhook"
+	"github.com/konflux-ci/qe-tools/pkg/prow"
+	"github.com/konflux-ci/qe-tools/pkg/types"
+	"github.com/konflux-ci/qe-tools/pkg/webhook"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"k8s.io/klog/v2"

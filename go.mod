@@ -1,4 +1,4 @@
-module github.com/redhat-appstudio/qe-tools
+module github.com/konflux-ci/qe-tools
 
 go 1.20
 
