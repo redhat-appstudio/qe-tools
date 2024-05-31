@@ -278,7 +278,7 @@ func determineJobTargetFromProwJobURL(prowJobURL string) (jobTarget string, err 
 	case strings.Contains(prowJobURL, "pull-ci-redhat-appstudio-infra-deployments"):
 		// prow URL is from infra-deployments repo
 		jobTarget = "appstudio-e2e-tests"
-	case strings.Contains(prowJobURL, "pull-ci-redhat-appstudio-e2e-tests"):
+	case strings.Contains(prowJobURL, "pull-ci-konflux-ci-e2e-tests"):
 		// prow URL is from e2e-tests repo
 		jobTarget = "redhat-appstudio-e2e"
 	case strings.Contains(prowJobURL, "pull-ci-konflux-ci-integration-service"):

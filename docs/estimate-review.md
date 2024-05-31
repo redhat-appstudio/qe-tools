@@ -19,7 +19,7 @@ Flags:
   -h, --help                help for estimate-review
       --human               human readable form
       --number int          number of the pull request (default 1)
-      --owner string        owner of the repository (default "redhat-appstudio")
+      --owner string        owner of the repository (default "konflux-ci")
       --repository string   name of the repository (default "e2e-tests")
       --token string        GitHub token
 ```

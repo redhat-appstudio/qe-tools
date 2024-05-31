@@ -237,7 +237,7 @@ func getLabelBasedOnTime(reviewTime int) (*TimeLabel, error) {
 }
 
 func init() {
-	EstimateTimeToReviewCmd.Flags().StringVar(&owner, "owner", "redhat-appstudio", "owner of the repository")
+	EstimateTimeToReviewCmd.Flags().StringVar(&owner, "owner", "konflux-ci", "owner of the repository")
 	EstimateTimeToReviewCmd.Flags().StringVar(&repository, "repository", "e2e-tests", "name of the repository")
 	EstimateTimeToReviewCmd.Flags().IntVar(&prNumber, "number", 1, "number of the pull request")
 	err := EstimateTimeToReviewCmd.MarkFlagRequired("number")
